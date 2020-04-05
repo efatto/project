@@ -4,6 +4,7 @@
 from odoo import models, fields, api, _
 from odoo.osv import expression
 from odoo.tools import config
+import string
 
 
 class Project(models.Model):
@@ -151,7 +152,8 @@ class Project(models.Model):
 
         key = []
         for item in data:
-            key.append(item[0].upper())
+            if item:
+                key.append(item[0].upper())
         return "".join(key)
 
     @api.multi
@@ -188,7 +190,20 @@ class Project(models.Model):
         for project in self.with_context(active_test=False).search([
             ('key', '=', False)
         ]):
-            project.key = self.generate_project_key(project.name)
+            key = self.generate_project_key(project.name)
+            if not key or key == '':
+                key = ' '
+            alphanum = string.ascii_uppercase + string.digits
+            i = 0
+            a = 0
+            while self.with_context(active_test=False).search([('key', '=', key)]):
+                key = key[:-1] + alphanum[i]
+                i += 1
+                if i == 36:
+                    key += alphanum[a]
+                    a += 1
+                    i = 0
+            project.key = key
             project.create_sequence()
 
             for task in project.task_ids:
